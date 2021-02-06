@@ -19,3 +19,7 @@ To clean up after compilaton:
 ```console
 $ make clean
 ```
+## Game rules
+Elephants are scared from the mouse so they flee from it when it is close to them.
+If the mouse gets too close elephants die from fear.
+You have to get as much elephants as you can to the circus before the time runs out.
