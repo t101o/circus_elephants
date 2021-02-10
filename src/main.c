@@ -40,8 +40,30 @@ int main (void)
         TTF_Font        *font           = NULL;        /* Font */
         SDL_Texture     *t_score        = NULL;        /* Score texture */
         SDL_Texture     *t_time         = NULL;        /* Time texture */
-        int error = 0;
+        SDL_Color       font_color      = {0,0,0,0};   /* Font color Black */
+        SDL_Event       e;                             /* Event for window exiting */
+        int             error           = 0;           /* Error code */
+        int             score           = 0;           /* Player score */
+        int             quit            = 0;           /* Quit flag */
+        int             mx;                            /* Mouse pointer x coordinates */
+        int             my;                            /* Mouse pointer y coordinates */
+        int             f_count         = 0;           /* Frame count */
+        char            score_text[6];                 /* Score text max 5 digits/chars */
+        char            time_text[4];                  /* Time left to play text max 3 digits */
         
+        SDL_Rect score_box;
+        score_box.y = F_MARGIN;
+        
+        SDL_Rect time_box;
+        time_box.y = F_MARGIN;
+        time_box.x = F_MARGIN;
+        
+        struct circus c;
+        c.r.x = (W_WIDTH - C_WIDTH)/2;
+        c.r.y = (W_HEIGHT - C_WIDTH)/2;
+        c.r.h = C_HEIGHT;
+        c.r.w = C_WIDTH;
+
         /* Initialize SDL video */
         if (SDL_Init(SDL_INIT_VIDEO) != 0) {
                 printf("Failed to initialize SDL: %s\n", SDL_GetError());
@@ -76,7 +98,8 @@ int main (void)
                 error = 1;
                 goto Cleanup;
         }
-        
+       
+        /* Initialize TTF for fonts */ 
         if (TTF_Init() < 0) {
                 printf("Failed to initialize TTF: %s\n", TTF_GetError());
                 error = 1;
@@ -120,57 +143,34 @@ int main (void)
         
         font = TTF_OpenFont(FONT, FONT_SIZE);
         if (!font) {
-                /* TODO Font opening error */
                 printf("Failed to open font file: %s\n", TTF_GetError());
                 error = 1;
                 goto Cleanup;
         }
         
-        
-        
         /* Background color */
         SDL_SetRenderDrawColor(renderer, B_RED, B_GREEN, B_BLUE, 0);
-        /* Font color */
-        SDL_Color font_color = {0,0,0,0};
         
-        
+        /* Initialize elephants */
         struct elephant el[E_COUNT_MAX];
         for (int i = 0; i < E_COUNT_MAX; i++) {
                 elephant_init(&el[i], rand() % W_WIDTH, rand() % W_HEIGHT);
         }
         
-        struct circus c;
-        c.r.x = (W_WIDTH - C_WIDTH)/2;
-        c.r.y = (W_HEIGHT - C_WIDTH)/2;
-        c.r.h = C_HEIGHT;
-        c.r.w = C_WIDTH;
         
         /* Rendering/Game loop */
-        int score = 0;
-        int quit = 0;
-        int mx, my; /* Mouse coordinates */
-        int f_count = 0;
-        SDL_Event e;
-        char score_text[6];
-        char time_text[4];
-        
-        SDL_Rect score_box;
-        score_box.y = F_MARGIN;
-        
-        SDL_Rect time_box;
-        time_box.y = F_MARGIN;
-        time_box.x = F_MARGIN;
-        
         while (!quit) {
+                /* Window exiting */
                 while (SDL_PollEvent(&e)) {
                         if (e.type == SDL_QUIT) {
                                 quit = 1;
                         }
                 }
-                
+               
+                /* Clear renderer */ 
                 SDL_RenderClear(renderer);
                 
-                if (f_count == G_TIME * F_RATE) {
+                if (f_count == G_TIME * F_RATE) { /* Game time has ended */
                         /*printf("\n\n%d\n\n", score);*/
                         /* TODO Display leaderboard or score */
                         circus_render(renderer, t_circus, &c);
@@ -200,13 +200,16 @@ int main (void)
                                         el[i].frame_count++;
                                 }
                                 //printf("%d\n\n", score);
+                                /* If elephant is dead for half a second,
+                                   reinitialize it. */
                                 if (el[i].frame_count == F_RATE/2) {
                                         elephant_init(&el[i], mx, my);
                                 }
                         }
                         f_count++;
                 }
-                
+
+                /* Getting score on screen */
                 sprintf(score_text, "%5d", score);
                 surface = TTF_RenderText_Solid(font, score_text, font_color);
                 score_box.h = surface->h;
@@ -216,7 +219,7 @@ int main (void)
                 SDL_FreeSurface(surface);
                 SDL_RenderCopy(renderer, t_score, NULL, &score_box);
                 
-                
+                /* Getting time left to play on screen */
                 sprintf(time_text, "%3d", G_TIME - f_count / F_RATE);
                 surface = TTF_RenderText_Solid(font, time_text, font_color);
                 time_box.h = surface->h;
@@ -225,10 +228,13 @@ int main (void)
                 SDL_FreeSurface(surface);
                 SDL_RenderCopy(renderer, t_time, NULL, &time_box);
                 
+                /* Destroy recently created textures */
                 SDL_DestroyTexture(t_score);
                 SDL_DestroyTexture(t_time);
                 
+                /* Draw frame */
                 SDL_RenderPresent(renderer);
+                /* Delay for about 1/30th of a second */
                 SDL_Delay(1000/F_RATE);
         }
         
