@@ -6,7 +6,7 @@ CC = clang
 
 	
 game:${OBJS}
-	${CC} ${CFLAGS} -o ../bin/$@ ${OBJS} ${LIBS}
+	${CC} ${CFLAGS} -o $@ ${OBJS} ${LIBS}
 	
 clean:
 	rm -f *.o
